@@ -1,0 +1,9 @@
+scikit-learn
+torch
+torchvision
+pandas
+requests
+tqdm
+matplotlib
+tensorflow
+h5py
