@@ -63,8 +63,8 @@ def save_frames_to_csv(frames, opath):
 
 
 if __name__ == "__main__":
-    opath, attr_file = sys.argv[1:]
-    matches = glob("timelines/*.json")
+    ipath, opath, attr_file = sys.argv[1:]
+    matches = glob(f"{ipath}/*.json")
 
     with open(attr_file, 'r') as f:
         stats = f.read().split('\n')

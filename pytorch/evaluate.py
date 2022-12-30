@@ -6,7 +6,9 @@ import json
 import sys
 import pandas as pd
 from glob import glob
+import os
 
+import requests
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -35,15 +37,24 @@ def print_event(event, items):
         s = f'Player {event["participantId"]} purchased item {items.get(str(event["itemId"]))["name"]}'
     print(s)
 
+def download_items():
+    resp = requests.get("https://ddragon.leagueoflegends.com/cdn/12.6.1/data/en_US/item.json")
+    items = resp.json()
+    with open('./items.json', 'w', encoding='utf8') as f:
+        f.write(json.dumps(items['data'], indent=4))
+
 
 if __name__ == '__main__':
     with open("./dataset/stats_inter_list.txt", 'r') as f:
         stats = f.read().split('\n')
 
+    if not os.path.exists('./items.json'):
+        download_items()
+
     with open("./items.json", 'r') as f:
         items = json.loads(f.read())
-    model_path, match_id = sys.argv[1:]
-    match_path = glob('./dataset/timelines/*.json')[eval(match_id)]
+    model_path, match_path, match_idx, include_item = sys.argv[1:]
+    match_path = glob(os.path.join(match_path, '*.json'))[eval(match_idx)]
     model = TimeframeModel(89)
     model.load_state_dict(torch.load(model_path))
     print("Model created")
@@ -52,7 +63,10 @@ if __name__ == '__main__':
         match = json.loads(f.read())
     
     frames = match['info']['frames']
-    critical_events = ['CHAMPION_SPECIAL_KILL', 'CHAMPION_KILL', 'BUILDING_KILL', 'ELITE_MONSTER_KILL', 'ITEM_PURCHASED']
+    critical_events = ['CHAMPION_SPECIAL_KILL', 'CHAMPION_KILL', 'BUILDING_KILL', 'ELITE_MONSTER_KILL']
+    if eval(include_item):
+        critical_events.append('ITEM_PURCHASED')
+
     events = []
     for f in frames:
         fevents = []
@@ -87,7 +101,7 @@ if __name__ == '__main__':
     plt.plot(range(1, len(metrics) + 1), metrics, 'b', label='Blue Team')
     plt.plot(range(1, len(metrics) + 1), opp_metrics, 'r', label='Red Team')
     plt.xlabel("Minutes after game start")
-    plt.ylabel("Likelihood of winning")
+    plt.ylabel("Win Probability")
     plt.ylim(0, 1)
     plt.legend()
     plt.title(f'Game that {"Red" if labels[0] == 0 else "Blue"} team won')
